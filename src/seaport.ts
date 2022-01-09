@@ -20,9 +20,9 @@ import {
   DEFAULT_MAX_BOUNTY,
   DEFAULT_SELLER_FEE_BASIS_POINTS,
   DEFAULT_WRAPPED_NFT_LIQUIDATION_UNISWAP_SLIPPAGE_IN_BASIS_POINTS,
-  ENJIN_COIN_ADDRESS,
+  // ENJIN_COIN_ADDRESS,
   INVERSE_BASIS_POINT,
-  MANA_ADDRESS,
+  // MANA_ADDRESS,
   MIN_EXPIRATION_SECONDS,
   NULL_ADDRESS,
   NULL_BLOCK_HASH,
@@ -1447,75 +1447,80 @@ export class OpenSeaPort {
     proxyAddress?: string;
     minimumAmount?: BigNumber;
   }): Promise<string | null> {
-    proxyAddress =
-      proxyAddress ||
-      WyvernProtocol.getTokenTransferProxyAddress(this._networkName);
-
-    const approvedAmount = await this._getApprovedTokenCount({
-      accountAddress,
-      tokenAddress,
-      proxyAddress,
-    });
-
-    if (approvedAmount.greaterThanOrEqualTo(minimumAmount)) {
-      this.logger("Already approved enough currency for trading");
-      return null;
-    }
-
-    this.logger(
-      `Not enough token approved for trade: ${approvedAmount} approved to transfer ${tokenAddress}`
-    );
-
-    this._dispatch(EventType.ApproveCurrency, {
-      accountAddress,
-      contractAddress: tokenAddress,
-      proxyAddress,
-    });
-
-    const hasOldApproveMethod = [ENJIN_COIN_ADDRESS, MANA_ADDRESS].includes(
-      tokenAddress.toLowerCase()
-    );
-
-    if (minimumAmount.greaterThan(0) && hasOldApproveMethod) {
-      // Older erc20s require initial approval to be 0
-      await this.unapproveFungibleToken({
-        accountAddress,
-        tokenAddress,
-        proxyAddress,
-      });
-    }
-
-    const txHash = await sendRawTransaction(
-      this.web3,
-      {
-        from: accountAddress,
-        to: tokenAddress,
-        data: encodeCall(
-          getMethod(ERC20, "approve"),
-          // Always approve maximum amount, to prevent the need for followup
-          // transactions (and because old ERC20s like MANA/ENJ are non-compliant)
-          [proxyAddress, WyvernProtocol.MAX_UINT_256.toString()]
-        ),
-      },
-      (error) => {
-        this._dispatch(EventType.TransactionDenied, { error, accountAddress });
-      }
-    );
-
-    await this._confirmTransaction(
-      txHash,
-      EventType.ApproveCurrency,
-      "Approving currency for trading",
-      async () => {
-        const newlyApprovedAmount = await this._getApprovedTokenCount({
-          accountAddress,
-          tokenAddress,
-          proxyAddress,
-        });
-        return newlyApprovedAmount.greaterThanOrEqualTo(minimumAmount);
-      }
-    );
-    return txHash;
+    accountAddress;
+    tokenAddress;
+    proxyAddress;
+    minimumAmount;
+    // proxyAddress =
+    //   proxyAddress ||
+    //   WyvernProtocol.getTokenTransferProxyAddress(this._networkName);
+    //
+    // const approvedAmount = await this._getApprovedTokenCount({
+    //   accountAddress,
+    //   tokenAddress,
+    //   proxyAddress,
+    // });
+    //
+    // if (approvedAmount.greaterThanOrEqualTo(minimumAmount)) {
+    //   this.logger("Already approved enough currency for trading");
+    //   return null;
+    // }
+    //
+    // this.logger(
+    //   `Not enough token approved for trade: ${approvedAmount} approved to transfer ${tokenAddress}`
+    // );
+    //
+    // this._dispatch(EventType.ApproveCurrency, {
+    //   accountAddress,
+    //   contractAddress: tokenAddress,
+    //   proxyAddress,
+    // });
+    //
+    // const hasOldApproveMethod = [ENJIN_COIN_ADDRESS, MANA_ADDRESS].includes(
+    //   tokenAddress.toLowerCase()
+    // );
+    //
+    // if (minimumAmount.greaterThan(0) && hasOldApproveMethod) {
+    //   // Older erc20s require initial approval to be 0
+    //   await this.unapproveFungibleToken({
+    //     accountAddress,
+    //     tokenAddress,
+    //     proxyAddress,
+    //   });
+    // }
+    //
+    // const txHash = await sendRawTransaction(
+    //   this.web3,
+    //   {
+    //     from: accountAddress,
+    //     to: tokenAddress,
+    //     data: encodeCall(
+    //       getMethod(ERC20, "approve"),
+    //       // Always approve maximum amount, to prevent the need for followup
+    //       // transactions (and because old ERC20s like MANA/ENJ are non-compliant)
+    //       [proxyAddress, WyvernProtocol.MAX_UINT_256.toString()]
+    //     ),
+    //   },
+    //   (error) => {
+    //     this._dispatch(EventType.TransactionDenied, { error, accountAddress });
+    //   }
+    // );
+    //
+    // await this._confirmTransaction(
+    //   txHash,
+    //   EventType.ApproveCurrency,
+    //   "Approving currency for trading",
+    //   async () => {
+    //     const newlyApprovedAmount = await this._getApprovedTokenCount({
+    //       accountAddress,
+    //       tokenAddress,
+    //       proxyAddress,
+    //     });
+    //     return newlyApprovedAmount.greaterThanOrEqualTo(minimumAmount);
+    //   }
+    // );
+    // return txHash;
+    return null;
   }
 
   /**
@@ -3282,21 +3287,21 @@ export class OpenSeaPort {
         : "schema" in order.metadata
         ? [order.metadata.schema]
         : [];
-    const tokenAddress = order.paymentToken;
+    // const tokenAddress = order.paymentToken;
 
     await this._approveAll({ schemaNames, wyAssets, accountAddress });
 
     // For fulfilling bids,
     // need to approve access to fungible token because of the way fees are paid
     // This can be done at a higher level to show UI
-    if (tokenAddress != NULL_ADDRESS) {
-      const minimumAmount = makeBigNumber(order.basePrice);
-      await this.approveFungibleToken({
-        accountAddress,
-        tokenAddress,
-        minimumAmount,
-      });
-    }
+    // if (tokenAddress != NULL_ADDRESS) {
+    //   const minimumAmount = makeBigNumber(order.basePrice);
+    //   await this.approveFungibleToken({
+    //     accountAddress,
+    //     tokenAddress,
+    //     minimumAmount,
+    //   });
+    // }
 
     // Check sell parameters
     const sellValid =
@@ -3506,11 +3511,12 @@ export class OpenSeaPort {
               return null;
             }
             contractsWithApproveAll.add(wyFTAsset.address);
-            return await this.approveFungibleToken({
-              tokenAddress: wyFTAsset.address,
-              accountAddress,
-              proxyAddress,
-            });
+            // return await this.approveFungibleToken({
+            //   tokenAddress: wyFTAsset.address,
+            //   accountAddress,
+            //   proxyAddress,
+            // });
+            return null;
           // For other assets, including contracts:
           // Send them to the user's proxy
           // if (where != WyvernAssetLocation.Proxy) {
@@ -3568,11 +3574,11 @@ export class OpenSeaPort {
 
       // Check token approval
       // This can be done at a higher level to show UI
-      await this.approveFungibleToken({
-        accountAddress,
-        tokenAddress,
-        minimumAmount,
-      });
+      // await this.approveFungibleToken({
+      //   accountAddress,
+      //   tokenAddress,
+      //   minimumAmount,
+      // });
     }
 
     // Check order formation
